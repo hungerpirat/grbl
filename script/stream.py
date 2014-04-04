@@ -27,8 +27,8 @@ RX_BUFFER_SIZE = 128
 parser = argparse.ArgumentParser(description='Stream g-code file to grbl. (pySerial and argparse libraries required)')
 parser.add_argument('gcode_file', type=argparse.FileType('r'),
         help='g-code filename to be streamed')
-parser.add_argument('device_file',
-        help='serial device path')
+parser.add_argument('device_file', nargs='?', const=1, default='/dev/ttyACM_Arduino',
+        help='serial device path, default:/dev/ttyACM_Arduino')
 parser.add_argument('-q','--quiet',action='store_true', default=False, 
         help='suppress output text')
 args = parser.parse_args()
@@ -41,7 +41,7 @@ args = parser.parse_args()
 #     t.start()
 
 # Initialize
-s = serial.Serial(args.device_file,9600)
+s = serial.Serial(args.device_file,115200)
 f = args.gcode_file
 verbose = True
 if args.quiet : verbose = False

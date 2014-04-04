@@ -96,20 +96,6 @@ void report_alarm_message(int8_t alarm_code)
     case ALARM_PROBE_FAIL:
     printPgmString(PSTR("Probe fail")); break;
   }
-  
-  // Report limit switch status
-  uint8_t limit_state;
-  // Get limit pin state.
-  limit_state = LIMIT_PIN;
-  if(bit_istrue(settings.flags, BITFLAG_INVERT_LIMIT_PINS)){
-    limit_state ^= LIMIT_MASK;
-  }
-  
-  printPgmString(PSTR(",Limits:"));
-  if(limit_state & (1<<X_LIMIT_BIT)) printPgmString(PSTR("X"));
-  if(limit_state & (1<<Y_LIMIT_BIT)) printPgmString(PSTR("Y"));
-  if(limit_state & (1<<Z_LIMIT_BIT)) printPgmString(PSTR("Z"));
-  
   printPgmString(PSTR("\r\n"));
   delay_ms(500); // Force delay to ensure message clears serial write buffer.
 }
@@ -399,10 +385,6 @@ void report_realtime_status()
   // Get limit pin state.
   limit_state = LIMIT_PIN;
   if(bit_istrue(settings.flags, BITFLAG_INVERT_LIMIT_PINS)){
-    printPgmString(PSTR(",Limits:"));
-    if(limit_state & (1<<X_LIMIT_BIT)) printPgmString(PSTR("X"));
-    if(limit_state & (1<<Y_LIMIT_BIT)) printPgmString(PSTR("Y"));
-    if(limit_state & (1<<Z_LIMIT_BIT)) printPgmString(PSTR("Z"));
     limit_state ^= LIMIT_MASK;
   }
   
