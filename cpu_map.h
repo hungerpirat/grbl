@@ -289,7 +289,7 @@
   #define LIMIT_INT       PCIE0  // Pin change interrupt enable pin
   #define LIMIT_INT_vect  PCINT0_vect 
   #define LIMIT_PCMSK     PCMSK0 // Pin change interrupt register
-  #define LIMIT_MASK ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
+  #define LIMIT_MASK ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT))//|(1<<Z_LIMIT_BIT)) // All limit bits
 
 
   // LASER MODULATION

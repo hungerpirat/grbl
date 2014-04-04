@@ -86,11 +86,15 @@ void spindle_run(uint8_t direction, float rpm)
       #define SPINDLE_RPM_RANGE (SPINDLE_MAX_RPM-SPINDLE_MIN_RPM)
       TCCRA_REGISTER |= TIMER1_OUTPUT_MODE; // restart timer1
 
-      rpm -= SPINDLE_MIN_RPM;
-      if ( rpm > SPINDLE_RPM_RANGE ) { rpm = SPINDLE_RPM_RANGE; } // Prevent uint8 overflow
-      uint8_t current_pwm = floor( rpm*(255.0/SPINDLE_RPM_RANGE) + 0.5);
-      SPINDLE_OCR_REGISTER = current_pwm;
-    
+      rpm = min(rpm, SPINDLE_MAX_RPM);
+      if(rpm > 0){
+        uint16_t current_pwm = floor((((float) rpm / (float) SPINDLE_MAX_RPM) * TIMER1_TOP) + 0.5); // timer1 has 16 bit
+        SPINDLE_OCR_REGISTER = current_pwm;
+      } else {
+        // TODO use SPINDLE_MIN_RPM here
+        spindle_stop();
+      }
+      
       #ifndef CPU_MAP_ATMEGA328P // On the Uno, spindle enable and PWM are shared.
       #ifndef CPU_MAP_ARDUINO_UNO_WITH_MR_BEAM_SHIELD // same on MrBeamShield
         SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);

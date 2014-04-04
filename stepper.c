@@ -325,7 +325,7 @@ ISR(TIMER2_COMPA_vect)
       #endif
 
       // Initialize step segment timing per step and load number of steps to execute.
-      OCR1A = st.exec_segment->cycles_per_tick;
+     // disabled for test OCR1A = st.exec_segment->cycles_per_tick;
       st.step_count = st.exec_segment->n_step; // NOTE: Can sometimes be zero when moving slow.
       // If the new segment starts a new planner block, initialize stepper variables and counters.
       // NOTE: When the segment data index changes, this indicates a new planner block.
