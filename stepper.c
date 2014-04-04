@@ -34,6 +34,8 @@
 #define RAMP_CRUISE 1
 #define RAMP_DECEL 2
 
+#define ISR_TICKS_PER_SECOND 30000L
+
 // Define Adaptive Multi-Axis Step-Smoothing(AMASS) levels and cutoff frequencies. The highest level
 // frequency bin starts at 0Hz and ends at its cutoff frequency. The next lower level frequency bin
 // starts at the next higher cutoff frequency, and so on. The cutoff frequencies for each level must
@@ -204,7 +206,12 @@ void st_wake_up()
     #endif
 
     // Enable Stepper Driver Interrupt
-    TIMSK1 |= (1<<OCIE1A);
+    // TIMSK1 |= (1<<OCIE1A);
+
+      st.execute_step = false;
+      TCNT2 = 0; // Clear Timer2
+      TIMSK2 |= (1<<OCIE2A); // Enable Timer2 Compare Match A interrupt
+      TCCR2B = (1<<CS21); // Begin Timer2. Full speed, 1/8 prescaler
   }
 }
 
@@ -213,8 +220,10 @@ void st_wake_up()
 void st_go_idle() 
 {
   // Disable Stepper Driver Interrupt. Allow Stepper Port Reset Interrupt to finish, if active.
-  TIMSK1 &= ~(1<<OCIE1A); // Disable Timer1 interrupt
-  TCCR1B = (TCCR1B & ~((1<<CS12) | (1<<CS11))) | (1<<CS10); // Reset clock to no prescaling.
+  // TIMSK1 &= ~(1<<OCIE1A); // Disable Timer1 interrupt
+  // TCCR1B = (TCCR1B & ~((1<<CS12) | (1<<CS11))) | (1<<CS10); // Reset clock to no prescaling.
+  TIMSK2 &= ~(1<<OCIE2A); // Disable Timer2 interrupt
+  TCCR2B = 0; // Disable Timer2
   busy = false;
   
   // Set stepper driver idle state, disabled or enabled, depending on settings and circumstances.
@@ -279,7 +288,7 @@ void st_go_idle()
 // TODO: Replace direct updating of the int32 position counters in the ISR somehow. Perhaps use smaller
 // int8 variables and update position counters only when a segment completes. This can get complicated 
 // with probing and homing cycles that require true real-time positions.
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER2_COMPA_vect)
 {        
 // SPINDLE_ENABLE_PORT ^= 1<<SPINDLE_ENABLE_BIT; // Debug: Used to time ISR
   if (busy) { return; } // The busy-flag is used to avoid reentering this interrupt
@@ -312,7 +321,7 @@ ISR(TIMER1_COMPA_vect)
 
       #ifndef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
         // With AMASS is disabled, set timer prescaler for segments with slow step frequencies (< 250Hz).
-        TCCR1B = (TCCR1B & ~(0x07<<CS10)) | (st.exec_segment->prescaler<<CS10);
+        //TCCR1B = (TCCR1B & ~(0x07<<CS10)) | (st.exec_segment->prescaler<<CS10);
       #endif
 
       // Initialize step segment timing per step and load number of steps to execute.
@@ -463,13 +472,20 @@ void stepper_init()
   DIRECTION_DDR |= DIRECTION_MASK;
   DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | settings.dir_invert_mask;
 
-  // Configure Timer 1: Stepper Driver Interrupt
-  TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
-  TCCR1B |=  (1<<WGM12);
-  TCCR1A &= ~((1<<WGM11) | (1<<WGM10)); 
-  TCCR1A &= ~((1<<COM1A1) | (1<<COM1A0) | (1<<COM1B1) | (1<<COM1B0)); // Disconnect OC1 output
-  // TCCR1B = (TCCR1B & ~((1<<CS12) | (1<<CS11))) | (1<<CS10); // Set in st_go_idle().
-  // TIMSK1 &= ~(1<<OCIE1A);  // Set in st_go_idle().
+  // // Configure Timer 1: Stepper Driver Interrupt
+  // TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
+  // TCCR1B |=  (1<<WGM12);
+  // TCCR1A &= ~((1<<WGM11) | (1<<WGM10)); 
+  // TCCR1A &= ~((1<<COM1A1) | (1<<COM1A0) | (1<<COM1B1) | (1<<COM1B0)); // Disconnect OC1 output
+  // // TCCR1B = (TCCR1B & ~((1<<CS12) | (1<<CS11))) | (1<<CS10); // Set in st_go_idle().
+  // // TIMSK1 &= ~(1<<OCIE1A);  // Set in st_go_idle().
+  
+  // Configure Timer 2
+  TIMSK2 &= ~(1<<OCIE2A); // Disable Timer2 interrupt while configuring it
+  TCCR2B = 0; // Disable Timer2 until needed
+  TCNT2 = 0; // Clear Timer2 counter
+  TCCR2A = (1<<WGM21);  // Set CTC mode
+  OCR2A = (F_CPU/ISR_TICKS_PER_SECOND)/8 - 1; // Set Timer2 CTC rate
   
   // Configure Timer 0: Stepper Port Reset Interrupt
   TIMSK0 &= ~((1<<OCIE0B) | (1<<OCIE0A) | (1<<TOIE0)); // Disconnect OC0 outputs and OVF interrupt.
