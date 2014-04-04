@@ -295,14 +295,65 @@
   // LASER MODULATION
   #define SPINDLE_ENABLE_DDR   DDRB
   #define SPINDLE_ENABLE_PORT  PORTB
-  //#define SPINDLE_ENABLE_BIT   4  // Uno Digital Pin 12
   #define SPINDLE_ENABLE_BIT   2  // Uno Digital Pin 10
+    #define VARIABLE_SPINDLE
+
+    #ifdef VARIABLE_SPINDLE
+      #define SPINDLE_IS_PWM // Uncomment this if your Spindle uses PWM ie. DC Motor
+
+      #ifdef SPINDLE_IS_PWM
+        #define SPINDLE_PWM_DDR     DDRB
+        #define SPINDLE_PWM_PORT	PORTB
+        #define SPINDLE_PWM_BIT	1 // UNO Digital Pin 9
+        #define SPINDLE_OCR_REGISTER OCR1A // UNO Digital Pin 9
+        #define TIMER1_OUTPUT_MODE _BV(COM1A1) | _BV(COM1B1) // set OC1A/B at TOP | clear OC1A/B when match
+ //       #define SPINDLE_MAX_RPM 255 // Max RPM of your spindle - This value is equal to 100% Duty Cycle on the PWM
+
+
+        /* COM1A1 | COM1A0 | Compare Output Mode
+         *    0   |    0   | Disconnect Pin OC1 from Timer/Counter 1
+         *    0   |    1   | Toggle OC1 on compare match
+         *    1   |    0   | Clear OC1 on compare match
+         *    1   |    1   | Set OC1 on compare match
+         */
+
+        /* CS12 | CS11 | CS10 | PRESCALING MODE
+         *   0  |   0  |   0  | Stop Timer/Counter 1
+         *   0  |   0  |   1  | No Prescaler (Timer Clock = System Clock)
+         *   0  |   1  |   0  | divide clock by 8
+         *   0  |   1  |   1  | divide clock by 64
+         *   1  |   0  |   0  | divide clock by 256
+         *   1  |   0  |   1  | divide clock by 1024
+         *   1  |   1  |   0  | increment timer 1 on T1 Pin falling edge
+         *   1  |   1  |   1  | increment timer 1 on T1 Pin rising edge
+         */
+        #define TIMER1_PRESCALE _BV(CS11)
+
+        // PWM_fequency = clock_speed / [Prescaler_value * (1 + TOP_Value) ]
+        // TOP_Value = clock_speed / (PWM_fequency * Prescaler_value) -1 
+        #define TIMER1_PWM_FREQ  800
+
+        // TIMER1_TOP should be finally greater than SPINDLE_MAX_RPM. 
+        // If not adjust TIMER1_PRESCALING or TIMER1_PWM_FREQ
+        #define TIMER1_TOP F_CPU / (TIMER1_PWM_FREQ * 8) -1 
+
+        //Set Timer up to use TIMER1 OCR1A(Pin9) | OCR1B(Pin10) 
+        #define TCCRA_REGISTER	TCCR1A // COM1A1, COM1A0, COM1B1, COM1B0,     -,    -, WGM11, WGM10
+        #define TCCRB_REGISTER	TCCR1B //  ICNC1,  ICES1,      -,  WGM13, WGM12, CS12,  CS11,  CS10
+
+      #endif
+    #else // End of VARIABLE_SPINDLE
+      #define SPINDLE_ENABLE_DDR   DDRB
+      #define SPINDLE_ENABLE_PORT  PORTB
+      #define SPINDLE_ENABLE_BIT   1  // Uno Digital Pin 9
+          
+    #endif // End of ON_OFF_SPINDLE
+          
 
   // TEC MODULATION
-  #define SPINDLE_DIRECTION_DDR   DDRB
-  #define SPINDLE_DIRECTION_PORT  PORTB
-  //#define SPINDLE_DIRECTION_BIT   5  // Uno Digital Pin 13 (NOTE: D13 can't be pulled-high input due to LED.)
-  #define SPINDLE_DIRECTION_BIT   1  // Uno Digital Pin 9 
+  #define TEC_DDR   DDRB
+  #define TEC_PORT  PORTB
+  #define TEC_BIT   2  // Uno Digital Pin 10
 
   #define COOLANT_FLOOD_DDR   DDRC
   #define COOLANT_FLOOD_PORT  PORTC
